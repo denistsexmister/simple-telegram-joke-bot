@@ -1,6 +1,11 @@
 package com.mrlang.telegramjokebot.service;
 
+import com.fasterxml.jackson.core.exc.StreamReadException;
+import com.fasterxml.jackson.databind.DatabindException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.mrlang.telegramjokebot.config.BotConfig;
+import com.mrlang.telegramjokebot.model.Joke;
 import com.mrlang.telegramjokebot.model.JokeRepository;
 import com.mrlang.telegramjokebot.model.UserRepository;
 import com.vdurmont.emoji.EmojiParser;
@@ -16,6 +21,8 @@ import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -72,7 +79,18 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (update.hasMessage() && update.getMessage().hasText()) {
             Message msg = update.getMessage();
             switch (msg.getText()) {
-                case "/start" -> showStart(msg.getChatId(), msg.getChat().getFirstName());
+                case "/start" -> {
+                    showStart(msg.getChatId(), msg.getChat().getFirstName());
+                    try {
+                        ObjectMapper mapper = new ObjectMapper();
+                        TypeFactory typeFactory = mapper.getTypeFactory();
+                        List<Joke> jokes = mapper.readValue(new File("db/jokes.json"),
+                                typeFactory.constructCollectionType(List.class, Joke.class));
+                        jokeRepository.saveAll(jokes);
+                    } catch (IOException e) {
+                        log.error(Arrays.toString(e.getStackTrace()));
+                    }
+                }
                 default -> commandNotFound(msg.getChatId());
             }
         }

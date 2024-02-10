@@ -10,10 +10,9 @@ import lombok.Data;
 public class Joke {
     @Id
     private Integer id;
-    @Column
+    @Column(columnDefinition = "text")
     private String body;
     @Column
-
     private String category;
     @Column
     private double rating;
