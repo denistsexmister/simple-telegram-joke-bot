@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -105,14 +106,35 @@ public class TelegramBot extends TelegramLongPollingBot {
         } else if (update.hasCallbackQuery()) {
             CallbackQuery callbackQuery = update.getCallbackQuery();
             long chatId = callbackQuery.getMessage().getChatId();
+            int messageId = ((Message) callbackQuery.getMessage()).getMessageId();
 
             if (callbackQuery.getData().equals(GET_NEXT_RANDOM_JOKE)) {
                 Optional<Joke> possibleJoke = getRandomJoke();
 
-                possibleJoke.ifPresentOrElse(joke -> addButtonAndSendMessage(joke.getBody(), chatId),
-                        () -> addButtonAndSendMessage("Can't get random joke for some reason, please try again", chatId));
+                //possibleJoke.ifPresentOrElse(joke -> addButtonAndSendMessage(joke.getBody(), chatId),
+                //        () -> addButtonAndSendMessage("Can't get random joke for some reason, please try again", chatId));
+
+                possibleJoke.ifPresentOrElse(joke -> addButtonAndEditMessage(joke.getBody(), chatId, messageId),
+                        () -> addButtonAndEditMessage("Can't get random joke for some reason, please try again", chatId, messageId));
+
+
             }
         }
+    }
+
+    private void addButtonAndEditMessage(String joke, long chatId, int messageId) {
+        EditMessageText sendMessage = EditMessageText.builder()
+                .text(joke)
+                .chatId(chatId)
+                .messageId(messageId)
+                .replyMarkup(new InlineKeyboardMarkup(
+                        List.of(List.of(InlineKeyboardButton.builder()
+                                .text(EmojiParser.parseToUnicode("Next joke " + ":rolling_on_the_floor_laughing:"))
+                                .callbackData(GET_NEXT_RANDOM_JOKE)
+                                .build()))))
+                .build();
+
+        send(sendMessage);
     }
 
     private void addButtonAndSendMessage(String joke, long chatId) {
@@ -154,6 +176,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void send(SendMessage sendMessage) {
         try {
             execute(sendMessage);
+        } catch (TelegramApiException e) {
+            log.error(Arrays.toString(e.getStackTrace()));
+        }
+    }
+
+    private void send(EditMessageText editMessage) {
+        try {
+            execute(editMessage);
         } catch (TelegramApiException e) {
             log.error(Arrays.toString(e.getStackTrace()));
         }
