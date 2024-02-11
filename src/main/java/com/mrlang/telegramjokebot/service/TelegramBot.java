@@ -23,9 +23,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 @Slf4j
 @Component
@@ -90,6 +88,15 @@ public class TelegramBot extends TelegramLongPollingBot {
                     } catch (IOException e) {
                         log.error(Arrays.toString(e.getStackTrace()));
                     }
+                }
+                case "/joke" -> {
+                    Random random = new Random();
+                    int randomId = random.nextInt(3772) + 1;
+
+                    Optional<Joke> possibleJoke = jokeRepository.findById(randomId);
+
+                    possibleJoke.ifPresentOrElse(joke -> sendMessage(joke.getBody(), msg.getChatId()),
+                            () -> sendMessage("Can't get random joke for some reason, please try again", msg.getChatId()));
                 }
                 default -> commandNotFound(msg.getChatId());
             }
